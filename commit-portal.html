@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commit JR — Portal</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090f;--bg1:#0e1118;--bg2:#151921;--bg3:#1d2330;--bg4:#252d3d;
+  --border:#252d3d;--border2:#2f3a4f;
+  --txt:#dce7f5;--txt2:#7a8fa8;--txt3:#465670;
+  --accent:#4f8ef7;--accent2:#2a5cbf;--accent-bg:rgba(79,142,247,.1);
+  --green:#34d399;--green-bg:rgba(52,211,153,.08);--green2:#059669;
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,.08);
+  --red:#f87171;--red-bg:rgba(248,113,113,.08);
+  --r:12px;--r2:8px;--r3:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg1);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.syne{font-family:'Syne',sans-serif;}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;min-height:100vh;}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:60px;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;gap:16px;flex-wrap:wrap;
+}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none;}
+.logo-icon{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#fff;
+}
+.logo-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--txt);letter-spacing:-.3px;}
+.logo-tag{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);letter-spacing:.5px;margin-top:1px;}
+
+.nav-tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:3px;}
+.nav-tab{
+  padding:6px 14px;border:none;background:none;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  letter-spacing:.5px;text-transform:uppercase;color:var(--txt3);
+  border-radius:6px;transition:all .15s;white-space:nowrap;
+}
+.nav-tab:hover{color:var(--txt2);background:var(--bg3);}
+.nav-tab.active{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(79,142,247,.25);}
+.nav-tab.adm-tab.active{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,.25);}
+
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.icon-btn{
+  width:32px;height:32px;border:1px solid var(--border2);border-radius:var(--r2);
+  background:var(--bg2);cursor:pointer;color:var(--txt3);
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.icon-btn:hover{color:var(--red);border-color:rgba(248,113,113,.3);}
+
+.main{flex:1;padding:28px;max-width:1400px;margin:0 auto;width:100%;}
+
+/* ── Stats Row ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+.stat{
+  background:var(--bg1);border:1px solid var(--border);border-radius:var(--r3);
+  padding:16px 18px;position:relative;overflow:hidden;
+}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.3;}
+.stat-label{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.stat-val{font-size:26px;font-weight:700;font-family:'Syne',sans-serif;color:var(--txt);}
+.stat-val.g{color:var(--green);}
+.stat-val.a{color:var(--amber);}
+.stat-val.r{color:var(--red);}
+.stat-val.b{color:var(--accent);}
+.stat-sub{font-size:11px;color:var(--txt3);margin-top:3px;}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.toolbar-left{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--txt3);}
+.search-input{
+  background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r2);
+  padding:8px 12px 8px 34px;font-size:13px;color:var(--txt);width:200px;
+  font-family:'Figtree',sans-serif;outline:none;transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--accent);}
+.select-pill{
+  background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r2);
+  padding:7px 10px;font-size:12px;color:var(--txt2);cursor:pointer;
+  font-family:'JetBrains Mono',monospace;outline:none;
+}
+.select-pill:focus{border-color:var(--accent);}
+.btn{
+  padding:8px 16px;border:none;border-radius:var(--r2);cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+  letter-spacing:.4px;text-transform:uppercase;transition:all .15s;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#6aa3ff;box-shadow:0 0 20px rgba(79,142,247,.3);}
+.btn-ghost{background:var(--bg2);color:var(--txt2);border:1px solid var(--border2);}
+.btn-ghost:hover{color:var(--txt);border-color:var(--border2);}
+.btn-green{background:var(--green2);color:#fff;}
+.btn-green:hover{background:#10b981;}
+.btn-red{background:rgba(153,27,27,.6);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.btn-red:hover{background:rgba(153,27,27,.9);}
+.btn-amber{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
+.btn-sm{padding:5px 10px;font-size:10px;}
+
+/* ── Cards Grid ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
+.member-card{
+  background:var(--bg1);border:1px solid var(--border);border-radius:var(--r3);
+  padding:20px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;
+  position:relative;overflow:hidden;
+  animation:fadeUp .35s ease both;
+}
+.member-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.member-card.crit{border-color:rgba(248,113,113,.3);animation:fadeUp .35s ease both,pulsered 2.5s ease infinite;}
+@keyframes pulsered{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,0);}50%{box-shadow:0 0 0 6px rgba(248,113,113,.15);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.card-avatar{
+  width:38px;height:38px;border-radius:9px;
+  background:var(--bg3);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;
+}
+.card-info{flex:1;margin:0 10px;}
+.card-name{font-size:14px;font-weight:600;color:var(--txt);line-height:1.3;}
+.card-role{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+.od-badge{
+  background:var(--amber-bg);border:1px solid rgba(251,191,36,.3);
+  color:var(--amber);font-size:9px;font-family:'JetBrains Mono',monospace;
+  font-weight:600;padding:2px 7px;border-radius:5px;text-transform:uppercase;
+  letter-spacing:.4px;white-space:nowrap;flex-shrink:0;
+}
+
+.hours-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);
+  padding:12px 16px;margin:12px 0;text-align:center;
+}
+.hours-box-label{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+.hours-big{font-size:38px;font-weight:700;font-family:'Syne',sans-serif;color:var(--green);line-height:1;}
+.hours-unit{font-size:14px;color:var(--green2);margin-left:2px;}
+.hours-sub{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+
+.card-foot{display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);}
+.foot-item{}
+.foot-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;}
+.foot-val{font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--txt);margin-top:2px;}
+.foot-val.g{color:var(--green);}
+.foot-val.a{color:var(--amber);}
+.foot-val.r{color:var(--red);}
+
+.prog-track{height:3px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+.prog-fill.g{background:var(--green);}
+.prog-fill.a{background:var(--amber);}
+.prog-fill.r{background:var(--red);}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(7,9,15,.8);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{
+  background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r3);
+  width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 40px 80px rgba(0,0,0,.6);
+  animation:fadeUp .25s ease;
+}
+.modal-sm{max-width:420px;}
+.modal-md{max-width:560px;}
+.modal-lg{max-width:740px;}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;border-bottom:1px solid var(--border);
+}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--txt);}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--txt3);padding:4px;border-radius:6px;transition:color .15s;}
+.modal-close:hover{color:var(--red);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── Form ── */
+.field{margin-bottom:14px;}
+.field-label{display:block;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.field-input{
+  width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);
+  padding:9px 12px;color:var(--txt);font-family:'Figtree',sans-serif;font-size:13px;
+  outline:none;transition:border-color .15s;
+}
+.field-input:focus{border-color:var(--accent);}
+.field-row{display:grid;gap:12px;}
+.field-row.c2{grid-template-columns:1fr 1fr;}
+.field-row.c3{grid-template-columns:1fr 1fr 1fr;}
+
+/* ── Conduct Table ── */
+.section-title{
+  font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--txt);
+  margin-bottom:18px;display:flex;align-items:center;gap:10px;
+}
+.section-title::before{content:'';width:3px;height:20px;background:var(--accent);border-radius:2px;display:inline-block;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.3px;}
+.badge-r{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.badge-a{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.2);}
+.badge-g{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.badge-b{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(79,142,247,.2);}
+
+.conduct-list{display:flex;flex-direction:column;gap:10px;}
+.conduct-row{
+  background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;
+}
+.conduct-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;cursor:pointer;transition:background .15s;
+}
+.conduct-head:hover{background:var(--bg2);}
+.conduct-info{display:flex;align-items:center;gap:14px;}
+.conduct-score{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;min-width:48px;}
+.conduct-name{font-size:13px;font-weight:600;color:var(--txt);}
+.conduct-role{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;}
+
+table.tbl{width:100%;border-collapse:collapse;}
+.tbl th{padding:10px 18px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;text-align:left;background:var(--bg2);border-bottom:1px solid var(--border);}
+.tbl td{padding:11px 18px;font-size:12px;color:var(--txt2);border-bottom:1px solid var(--border);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg2);}
+.tbl tr.expired td{opacity:.35;}
+.tbl td.pts{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--red);text-align:right;}
+.tbl td.mono{font-family:'JetBrains Mono',monospace;}
+
+/* ── Admin Panel ── */
+.adm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:24px;}
+.adm-card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r3);padding:22px;}
+.adm-card-title{
+  font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt3);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:18px;
+  display:flex;align-items:center;gap:8px;
+}
+.adm-card-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+.table-wrap{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r3);overflow:hidden;}
+.table-head-bar{padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.overflow-x{overflow-x:auto;}
+.mini-input{
+  width:60px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  padding:5px 8px;color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:11px;
+  text-align:center;outline:none;
+}
+.mini-input:focus{border-color:var(--accent);}
+.mini-toggle{
+  padding:4px 10px;border-radius:5px;font-size:9px;font-family:'JetBrains Mono',monospace;
+  font-weight:700;text-transform:uppercase;cursor:pointer;border:1px solid;transition:all .15s;
+}
+.mini-toggle.on{background:var(--amber-bg);color:var(--amber);border-color:rgba(251,191,36,.3);}
+.mini-toggle.off{background:var(--bg3);color:var(--txt3);border-color:var(--border);}
+.del-btn{
+  background:none;border:none;cursor:pointer;color:var(--txt3);
+  padding:6px;border-radius:6px;transition:all .15s;display:flex;
+}
+.del-btn:hover{color:var(--red);background:var(--red-bg);}
+.edit-inline{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;width:100%;}
+.edit-inline:focus{border-color:var(--accent);}
+
+/* ── Roles Config ── */
+.roles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px;}
+.role-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+.role-name-label{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.role-name-val{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:12px;}
+
+/* ── Loader ── */
+.loader-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px;}
+.spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loader-txt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--txt3);letter-spacing:.8px;}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:60px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--txt3);}
+
+/* ── CSV drop zone ── */
+.drop-zone{
+  border:2px dashed var(--border2);border-radius:var(--r);padding:32px;text-align:center;
+  transition:border-color .15s,background .15s;cursor:pointer;
+}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accent-bg);}
+.drop-zone p{font-size:13px;color:var(--txt2);margin-top:8px;}
+.drop-zone small{font-size:11px;color:var(--txt3);font-family:'JetBrains Mono',monospace;}
+
+/* ── Tags ── */
+.role-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-family:'JetBrains Mono',monospace;background:var(--bg3);color:var(--txt3);border:1px solid var(--border);margin:1px;}
+
+/* ── Switch ── */
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.switch-row:last-child{border-bottom:none;}
+.switch-lbl{font-size:13px;color:var(--txt2);}
+.toggle-wrap{display:flex;align-items:center;gap:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loader-wrap">
+    <div class="spinner"></div>
+    <p class="loader-txt">inicializando firebase...</p>
+  </div>
+</div>
+
+<script>
+// ── Firebase ────────────────────────────────────────────────────
+const fbCfg = {
+  apiKey:"AIzaSyCasLIhPZ-eu_wisn0fNzNVEymGUouJaS0",
+  authDomain:"minhas-finacas.firebaseapp.com",
+  projectId:"minhas-finacas",
+  storageBucket:"minhas-finacas.firebasestorage.app",
+  messagingSenderId:"1056339749032",
+  appId:"1:1056339749032:web:375d2b01c4cba2a32efa9d"
+};
+if (!firebase.apps.length) firebase.initializeApp(fbCfg);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+const APP  = 'commit-v5';
+const DOC  = ()=>db.collection('artifacts').doc(APP).collection('public').doc('data').collection('members').doc('list');
+const CFGDOC = ()=>db.collection('artifacts').doc(APP).collection('public').doc('config');
+const SYS_START = new Date('2026-01-01');
+
+// ── Default roles config ─────────────────────────────────────────
+const DEFAULT_ROLES = {
+  conselheiro:{label:'Conselheiro',hours:20},
+  diretor:{label:'Diretor',hours:16},
+  gerente:{label:'Gerente',hours:12},
+  membro:{label:'Membro',hours:8}
+};
+
+// ── State ────────────────────────────────────────────────────────
+let STATE = {
+  members:[],
+  roles:DEFAULT_ROLES,
+  user:null,
+  isAdmin:false,
+  view:'dashboard',
+  sort:'nome',
+  search:'',
+  authReady:false,
+  loading:true,
+  modal:null,  // 'addMember'|'detail'|'login'|'addRole'|'importCSV'|'editMember'|'addConduct'
+  modalData:null,
+  openConduct:{},
+};
+
+// ── Helpers ──────────────────────────────────────────────────────
+const h = s => s.trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+const fmt = d => { if(!d) return '—'; const diff=Date.now()-new Date(d); const days=Math.ceil(diff/86400000); const mo=Math.floor(days/30.41); const yr=Math.floor(mo/12); return yr>0?`${yr}a ${mo%12}m`:mo>0?`${mo}m`:`${days}d`; };
+const today = () => new Date().toISOString().split('T')[0];
+const curRole = m => { const rk=(m.roleHistory||[]).at(-1)?.role||'membro'; return (STATE.roles[rk]||DEFAULT_ROLES.membro).label; };
+const roleHours = rk => (STATE.roles[rk]||DEFAULT_ROLES.membro).hours;
+const weeklyRate = m => {
+  const rk=(m.roleHistory||[]).at(-1)?.role||'membro';
+  return roleHours(rk)+(m.isOverdelivery?4:0)+(m.extraHours||0)-(m.penaltyHours||0);
+};
+const accumulated = m => {
+  if(!(m.roleHistory?.length)) return 0;
+  const hist=[...m.roleHistory].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let total=0; const now=new Date();
+  hist.forEach((e,i)=>{
+    const s=new Date(e.date),ps=s>SYS_START?s:SYS_START;
+    const pe=hist[i+1]?new Date(hist[i+1].date):now;
+    if(pe>ps) total+=(pe-ps)/(7*864e5)*roleHours(e.role);
+  });
+  return Math.floor(total);
+};
+const activePts = (h=[]) => { const c=new Date(); c.setMonth(c.getMonth()-8); return h.filter(x=>new Date(x.date)>=c).reduce((s,x)=>s+Number(x.points),0); };
+const condColor = pts => pts>=20?'r':pts>=15?'a':'g';
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
+
+// ── Persistence ──────────────────────────────────────────────────
+async function saveMembers(members) {
+  if(!STATE.isAdmin) return;
+  await DOC().set({members},{merge:true});
+}
+async function saveRoles(roles) {
+  if(!STATE.isAdmin) return;
+  await CFGDOC().set({roles},{merge:true});
+}
+
+// ── Render ───────────────────────────────────────────────────────
+function render() {
+  const root = document.getElementById('app');
+  if(STATE.loading) { root.innerHTML=`<div class="loader-wrap"><div class="spinner"></div><p class="loader-txt">carregando dados...</p></div>`; return; }
+  root.innerHTML = buildApp();
+  attachListeners();
+  renderModal();
+}
+
+function buildApp() {
+  const {view,isAdmin,members,search,sort} = STATE;
+  let filtered = members.filter(m => !search || m.name.toLowerCase().includes(search.toLowerCase()));
+  filtered = sortMembers(filtered);
+
+  const totalH = members.reduce((s,m)=>s+accumulated(m),0);
+  const odCount = members.filter(m=>m.isOverdelivery).length;
+  const critCount = members.filter(m=>activePts(m.conductHistory)>=20).length;
+
+  return `
+<div>
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">CJ</div>
+      <div>
+        <div class="logo-name">Commit JR</div>
+        <div class="logo-tag">Extension Portal</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab ${view==='dashboard'?'active':''}" data-view="dashboard">Painel</button>
+      ${isAdmin?`<button class="nav-tab ${view==='conduct'?'active adm-tab':''}" data-view="conduct">Conduta</button>`:''}
+      ${isAdmin?`<button class="nav-tab ${view==='admin'?'active adm-tab':''}" data-view="admin">Gestão</button>`:''}
+      ${isAdmin?`<button class="nav-tab ${view==='roles'?'active adm-tab':''}" data-view="roles">Cargos</button>`:''}
+      ${!isAdmin?`<button class="nav-tab" id="loginBtn">Admin</button>`:''}
+    </div>
+    <div class="topbar-right">
+      ${isAdmin?`<button class="btn btn-primary btn-sm" id="exportBtn">⬇ Exportar</button>`:''}
+      ${isAdmin?`<button class="icon-btn" id="logoutBtn" title="Sair">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>`:''}
+    </div>
+  </div>
+
+  <div class="main">
+    ${view==='dashboard'?buildDashboard(filtered,members,totalH,odCount,critCount):''}
+    ${view==='conduct'&&isAdmin?buildConduct(members):''}
+    ${view==='admin'&&isAdmin?buildAdmin(members):''}
+    ${view==='roles'&&isAdmin?buildRoles():''}
+  </div>
+</div>`;
+}
+
+function sortMembers(list) {
+  const s = STATE.sort;
+  return [...list].sort((a,b)=>{
+    if(s==='nome') return a.name.localeCompare(b.name);
+    if(s==='horas') return accumulated(b)-accumulated(a);
+    if(s==='tempo') { const da=new Date(a.startDate||0),db2=new Date(b.startDate||0); return da-db2; }
+    if(s==='nota') return activePts(b.conductHistory)-activePts(a.conductHistory);
+    return 0;
+  });
+}
+
+function buildDashboard(filtered,members,totalH,odCount,critCount) {
+  const {isAdmin,search,sort} = STATE;
+  return `
+    <div class="stats-row">
+      <div class="stat"><div class="stat-label">Membros</div><div class="stat-val b">${members.length}</div><div class="stat-sub">ativos</div></div>
+      <div class="stat"><div class="stat-label">Horas Totais</div><div class="stat-val g">${totalH}</div><div class="stat-sub">acumuladas</div></div>
+      <div class="stat"><div class="stat-label">Overdelivery</div><div class="stat-val a">${odCount}</div><div class="stat-sub">esta semana</div></div>
+      ${isAdmin?`<div class="stat"><div class="stat-label">Alertas</div><div class="stat-val r">${critCount}</div><div class="stat-sub">20+ pts conduta</div></div>`:''}
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-wrap">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="searchInput" type="text" placeholder="Buscar membro…" value="${search}">
+        </div>
+        <select class="select-pill" id="sortSelect">
+          <option value="nome" ${sort==='nome'?'selected':''}>A–Z Nome</option>
+          <option value="horas" ${sort==='horas'?'selected':''}>↓ Mais horas</option>
+          <option value="tempo" ${sort==='tempo'?'selected':''}>↑ Mais antigo</option>
+          ${isAdmin?`<option value="nota" ${sort==='nota'?'selected':''}>↓ Maior conduta</option>`:''}
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        ${isAdmin?`<button class="btn btn-ghost btn-sm" id="importBtn">⬆ Importar CSV</button>`:''}
+        ${isAdmin?`<button class="btn btn-primary" id="addMemberBtn">+ Membro</button>`:''}
+      </div>
+    </div>
+    ${filtered.length===0?`<div class="empty">// nenhum membro encontrado</div>`:`
+    <div class="cards-grid">
+      ${filtered.map((m,i) => buildCard(m,i)).join('')}
+    </div>`}
+  `;
+}
+
+function buildCard(m, i) {
+  const pts = activePts(m.conductHistory);
+  const acc = accumulated(m);
+  const rate = weeklyRate(m);
+  const crit = STATE.isAdmin && pts>=20;
+  const cc = condColor(pts);
+  const pct = Math.min(pts/20*100,100);
+  return `
+  <div class="member-card ${crit?'crit':''}" data-id="${m.id}" style="animation-delay:${i*0.04}s">
+    <div class="card-header">
+      <div class="card-avatar">${h(m.name)}</div>
+      <div class="card-info">
+        <div class="card-name">${m.name}</div>
+        <div class="card-role">${curRole(m)}</div>
+      </div>
+      ${m.isOverdelivery?`<span class="od-badge">⚡ OD</span>`:''}
+    </div>
+    <div class="hours-box">
+      <div class="hours-box-label">Carga Acumulada</div>
+      <div><span class="hours-big">${acc}</span><span class="hours-unit">h</span></div>
+      <div class="hours-sub">crédito de extensão</div>
+    </div>
+    <div class="card-foot">
+      <div class="foot-item">
+        <div class="foot-lbl">Ritmo</div>
+        <div class="foot-val g">${rate}h/sem</div>
+      </div>
+      ${STATE.isAdmin?`<div class="foot-item" style="text-align:center">
+        <div class="foot-lbl">Conduta</div>
+        <div class="foot-val ${cc}">${pts}/20</div>
+      </div>`:''}
+      <div class="foot-item" style="text-align:right">
+        <div class="foot-lbl">Casa</div>
+        <div class="foot-val">${fmt(m.startDate)}</div>
+      </div>
+    </div>
+    ${STATE.isAdmin?`<div class="prog-track"><div class="prog-fill ${cc}" style="width:${pct}%"></div></div>`:''}
+  </div>`;
+}
+
+function buildConduct(members) {
+  const sorted=[...members].sort((a,b)=>activePts(b.conductHistory)-activePts(a.conductHistory));
+  const cutoff=new Date(); cutoff.setMonth(cutoff.getMonth()-8);
+  return `
+  <div class="section-title">Ranking de Conduta <span class="badge badge-r" style="font-size:9px">Restrito · ADM</span></div>
+  ${STATE.isAdmin?`<div style="margin-bottom:16px"><button class="btn btn-red btn-sm" id="addConductBtn">+ Lançar Infração</button></div>`:''}
+  <div class="conduct-list">
+  ${sorted.map(m=>{
+    const pts=activePts(m.conductHistory); const cc=condColor(pts); const open=STATE.openConduct[m.id];
+    const pct=Math.min(pts/20*100,100);
+    return `
+    <div class="conduct-row">
+      <div class="conduct-head" data-cid="${m.id}">
+        <div class="conduct-info">
+          <div class="conduct-score ${cc==='r'?'foot-val r':cc==='a'?'foot-val a':'foot-val g'}">${pts}/20</div>
+          <div>
+            <div class="conduct-name">${m.name}</div>
+            <div class="conduct-role">${curRole(m)}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="prog-track" style="width:80px"><div class="prog-fill ${cc}" style="width:${pct}%"></div></div>
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .2s;transform:${open?'rotate(180deg)':'none'};color:var(--txt3)"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      ${open?`<div class="overflow-x">
+        <table class="tbl">
+          <thead><tr><th>Data</th><th>Motivo</th><th style="text-align:right">Pts</th>${STATE.isAdmin?'<th></th>':''}</tr></thead>
+          <tbody>
+          ${(m.conductHistory||[]).length===0?`<tr><td colspan="4" class="empty" style="padding:16px">Sem infrações</td></tr>`:''}
+          ${[...(m.conductHistory||[])].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(r=>`
+            <tr class="${new Date(r.date)<cutoff?'expired':''}">
+              <td class="mono">${new Date(r.date).toLocaleDateString('pt-BR')}</td>
+              <td>${r.reason}</td>
+              <td class="pts">+${r.points}</td>
+              ${STATE.isAdmin?`<td><button class="del-btn" data-del-conduct="${m.id}" data-conduct-id="${r.id}" title="Remover">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+              </button></td>`:''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`:''}
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+function buildAdmin(members) {
+  return `
+  <div class="section-title">Gestão de Membros</div>
+  <div class="adm-cards">
+    <div class="adm-card">
+      <div class="adm-card-title">Adicionar Membro</div>
+      <div class="field"><label class="field-label">Nome</label><input class="field-input" id="newName" placeholder="Nome completo"></div>
+      <div class="field"><label class="field-label">Cargo inicial</label>
+        <select class="field-input" id="newRole">
+          ${Object.entries(STATE.roles).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label class="field-label">Data de entrada</label><input class="field-input" id="newDate" type="date" value="${today()}"></div>
+      <button class="btn btn-primary" style="width:100%" id="doAddMember">+ Registrar Membro</button>
+    </div>
+    <div class="adm-card">
+      <div class="adm-card-title">Promover / Alterar Cargo</div>
+      <div class="field"><label class="field-label">Membro</label>
+        <select class="field-input" id="promoMember"><option value="">Selecionar…</option>${members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label class="field-label">Novo Cargo</label>
+        <select class="field-input" id="promoRole">${Object.entries(STATE.roles).map(([k,v])=>`<option value="${k}">${v.label} (${v.hours}h/sem)</option>`).join('')}</select>
+      </div>
+      <div class="field"><label class="field-label">Data efetiva</label><input class="field-input" id="promoDate" type="date" value="${today()}"></div>
+      <button class="btn btn-amber" style="width:100%" id="doPromo">Aplicar Cargo</button>
+    </div>
+    <div class="adm-card">
+      <div class="adm-card-title">Ajustes de Horas</div>
+      <div class="field"><label class="field-label">Membro</label>
+        <select class="field-input" id="adjMember"><option value="">Selecionar…</option>${members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select>
+      </div>
+      <div class="field-row c2">
+        <div class="field"><label class="field-label">+ Extra h/sem</label><input class="field-input" id="adjExtra" type="number" value="0" min="0"></div>
+        <div class="field"><label class="field-label">− Desconto h/sem</label><input class="field-input" id="adjPenalty" type="number" value="0" min="0"></div>
+      </div>
+      <div class="field"><label class="field-label">Overdelivery</label>
+        <select class="field-input" id="adjOD"><option value="0">Não</option><option value="1">Sim (+4h/sem)</option></select>
+      </div>
+      <div class="field"><label class="field-label">Semana OD (ex: Sem 12)</label><input class="field-input" id="adjODDate" placeholder="Semana X"></div>
+      <button class="btn btn-green" style="width:100%" id="doAdj">Salvar Ajustes</button>
+    </div>
+    <div class="adm-card">
+      <div class="adm-card-title">Ponto de Conduta</div>
+      <div class="field"><label class="field-label">Membro</label>
+        <select class="field-input" id="condMember"><option value="">Selecionar…</option>${members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('')}</select>
+      </div>
+      <div class="field-row c2">
+        <div class="field"><label class="field-label">Pontos</label><input class="field-input" id="condPts" type="number" value="4" min="1" max="20"></div>
+        <div class="field"><label class="field-label">Data</label><input class="field-input" id="condDate" type="date" value="${today()}"></div>
+      </div>
+      <div class="field"><label class="field-label">Motivo</label><input class="field-input" id="condReason" placeholder="Descreva a infração"></div>
+      <button class="btn btn-red" style="width:100%" id="doCond">Registrar Infração</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head-bar">
+      <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px">Tabela de Membros · ${members.length} registros</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" id="importBtn2">⬆ Importar CSV</button>
+        <button class="btn btn-primary btn-sm" id="exportBtn2">⬇ Exportar CSV</button>
+      </div>
+    </div>
+    <div class="overflow-x">
+      <table class="tbl" style="min-width:900px">
+        <thead><tr><th>Membro</th><th>Cargo Atual</th><th>h/sem</th><th>Horas Acc.</th><th>Extra</th><th>Desconto</th><th>OD</th><th>Conduta</th><th>Casa</th><th></th></tr></thead>
+        <tbody>
+          ${members.length===0?`<tr><td colspan="10" class="empty">Sem membros</td></tr>`:''}
+          ${members.map(m=>{
+            const pts=activePts(m.conductHistory); const cc=condColor(pts);
+            return `<tr>
+              <td style="font-weight:600;color:var(--txt);white-space:nowrap">${m.name}</td>
+              <td><span class="badge badge-b">${curRole(m)}</span></td>
+              <td class="mono">${weeklyRate(m)}</td>
+              <td class="mono" style="color:var(--green);font-weight:700">${accumulated(m)}</td>
+              <td><input class="mini-input" type="number" data-patch="${m.id}" data-field="extraHours" value="${m.extraHours||0}" min="0"></td>
+              <td><input class="mini-input" type="number" data-patch="${m.id}" data-field="penaltyHours" value="${m.penaltyHours||0}" min="0"></td>
+              <td>
+                <button class="mini-toggle ${m.isOverdelivery?'on':'off'}" data-od="${m.id}">${m.isOverdelivery?'ON':'OFF'}</button>
+              </td>
+              <td><span class="badge ${cc==='r'?'badge-r':cc==='a'?'badge-a':'badge-g'}">${pts}/20</span></td>
+              <td class="mono">${fmt(m.startDate)}</td>
+              <td>
+                <button class="del-btn" data-del="${m.id}" title="Remover membro">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function buildRoles() {
+  const roles = STATE.roles;
+  return `
+  <div class="section-title">Configuração de Cargos</div>
+  <p style="font-size:13px;color:var(--txt2);margin-bottom:20px">Configure os cargos e as horas semanais que cada um gera. As horas acumuladas são recalculadas automaticamente.</p>
+  <div class="roles-grid">
+    ${Object.entries(roles).map(([k,v])=>`
+    <div class="role-card">
+      <div class="role-name-label">Chave</div>
+      <div class="role-name-val">${k}</div>
+      <div class="field"><label class="field-label">Nome exibido</label>
+        <input class="edit-inline" data-role-key="${k}" data-role-field="label" value="${v.label}" placeholder="Nome">
+      </div>
+      <div class="field" style="margin-top:10px"><label class="field-label">Horas/semana</label>
+        <input class="edit-inline" type="number" data-role-key="${k}" data-role-field="hours" value="${v.hours}" min="1" max="40">
+      </div>
+      <button class="del-btn" data-del-role="${k}" style="margin-top:12px;color:var(--red)" title="Remover cargo">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Remover cargo
+      </button>
+    </div>`).join('')}
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+    <button class="btn btn-primary" id="addRoleBtn">+ Novo Cargo</button>
+    <button class="btn btn-green" id="saveRolesBtn">✓ Salvar Configuração</button>
+  </div>
+  <div class="adm-card" style="max-width:480px">
+    <div class="adm-card-title">Legenda de cálculo</div>
+    <p style="font-size:12px;color:var(--txt2);line-height:1.7">
+      <strong style="color:var(--accent)">Horas acumuladas</strong> = soma das semanas em cada cargo × horas do cargo, contadas a partir de 01/01/2026.<br>
+      <strong style="color:var(--green)">Overdelivery</strong> adiciona +4h/sem enquanto ativo.<br>
+      <strong style="color:var(--amber)">Extra/Desconto</strong> são ajustes manuais permanentes.
+    </p>
+  </div>`;
+}
+
+// ── Modal ────────────────────────────────────────────────────────
+function renderModal() {
+  let existing = document.getElementById('modalLayer');
+  if(existing) existing.remove();
+  if(!STATE.modal) return;
+  const layer = document.createElement('div');
+  layer.id='modalLayer'; layer.className='overlay';
+  layer.innerHTML = buildModal();
+  document.body.appendChild(layer);
+  layer.addEventListener('click', e=>{ if(e.target===layer) closeModal(); });
+  attachModalListeners();
+}
+
+function buildModal() {
+  const {modal,modalData} = STATE;
+  if(modal==='login') return `
+    <div class="modal modal-sm">
+      <div class="modal-header"><span class="modal-title">// Admin Portal</span><button class="modal-close" id="mClose">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label class="field-label">E-mail</label><input class="field-input" id="mEmail" type="email" placeholder="admin@commitjr.com"></div>
+        <div class="field"><label class="field-label">Senha</label><input class="field-input" id="mPass" type="password" placeholder="••••••••"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="mClose2">Cancelar</button>
+        <button class="btn btn-primary" id="doLogin">Entrar →</button>
+      </div>
+    </div>`;
+
+  if(modal==='importCSV') return `
+    <div class="modal modal-md">
+      <div class="modal-header"><span class="modal-title">Importar Membros via CSV</span><button class="modal-close" id="mClose">✕</button></div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--txt2);margin-bottom:16px">O CSV deve ter as colunas: <code style="font-family:monospace;color:var(--accent)">nome, cargo, data_entrada</code><br>A coluna <code style="font-family:monospace;color:var(--accent)">cargo</code> deve ser uma das chaves: ${Object.keys(STATE.roles).join(', ')}</p>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('csvFile').click()">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:var(--txt3);margin:0 auto"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <p>Clique para selecionar ou arraste o arquivo CSV</p>
+          <small>nome, cargo, data_entrada</small>
+        </div>
+        <input type="file" id="csvFile" accept=".csv,.txt" style="display:none">
+        <div id="csvPreview" style="margin-top:14px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="mClose2">Cancelar</button>
+        <button class="btn btn-primary" id="doImport" style="display:none">Importar Membros</button>
+      </div>
+    </div>`;
+
+  if(modal==='addRole') return `
+    <div class="modal modal-sm">
+      <div class="modal-header"><span class="modal-title">Novo Cargo</span><button class="modal-close" id="mClose">✕</button></div>
+      <div class="modal-body">
+        <div class="field"><label class="field-label">Chave interna (sem espaços)</label><input class="field-input" id="roleKey" placeholder="ex: estagiario"></div>
+        <div class="field"><label class="field-label">Nome exibido</label><input class="field-input" id="roleName" placeholder="ex: Estagiário"></div>
+        <div class="field"><label class="field-label">Horas por semana</label><input class="field-input" id="roleHrs" type="number" value="6" min="1" max="40"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="mClose2">Cancelar</button>
+        <button class="btn btn-primary" id="doAddRole">Criar Cargo</button>
+      </div>
+    </div>`;
+
+  return '';
+}
+
+function closeModal() { STATE.modal=null; STATE.modalData=null; renderModal(); }
+
+function attachModalListeners() {
+  const q = id => document.getElementById(id);
+  const {modal} = STATE;
+
+  q('mClose')?.addEventListener('click', closeModal);
+  q('mClose2')?.addEventListener('click', closeModal);
+
+  if(modal==='login') {
+    q('doLogin')?.addEventListener('click', async ()=>{
+      const em=q('mEmail').value, ps=q('mPass').value;
+      try { await auth.signInWithEmailAndPassword(em,ps); closeModal(); }
+      catch { alert('Credenciais inválidas.'); }
+    });
+    q('mEmail')?.addEventListener('keydown', e=>{ if(e.key==='Enter') q('mPass').focus(); });
+    q('mPass')?.addEventListener('keydown', e=>{ if(e.key==='Enter') q('doLogin')?.click(); });
+  }
+
+  if(modal==='importCSV') {
+    let parsed = [];
+    const preview = q('csvPreview');
+    const doBtn = q('doImport');
+    const parseCSV = text => {
+      const lines = text.trim().split('\n').filter(l=>l.trim());
+      const header = lines[0].toLowerCase().split(',').map(s=>s.trim());
+      const ni=header.findIndex(h=>h.includes('nome')||h==='name');
+      const ci=header.findIndex(h=>h.includes('cargo')||h.includes('role'));
+      const di=header.findIndex(h=>h.includes('data')||h.includes('date'));
+      parsed = lines.slice(1).map(l=>{
+        const cols=l.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+        return { name:cols[ni]||'', roleKey:cols[ci]||'membro', startDate:cols[di]||today() };
+      }).filter(r=>r.name);
+      if(parsed.length===0){preview.innerHTML=`<p style="color:var(--red);font-size:12px">Nenhum membro válido encontrado. Verifique o formato.</p>`;return;}
+      preview.innerHTML=`<div style="margin-top:8px"><p style="font-size:12px;color:var(--green);margin-bottom:8px">${parsed.length} membro(s) encontrado(s):</p>
+        <div style="max-height:160px;overflow-y:auto;background:var(--bg2);border-radius:8px;padding:10px">
+        ${parsed.map(r=>`<div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--txt2);padding:3px 0">${r.name} · ${STATE.roles[r.roleKey]?.label||r.roleKey}</div>`).join('')}
+        </div></div>`;
+      doBtn.style.display='flex';
+    };
+    const handleFile = f=>{ const r=new FileReader(); r.onload=e=>parseCSV(e.target.result); r.readAsText(f); };
+    q('csvFile')?.addEventListener('change', e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+    const dz=q('dropZone');
+    dz?.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+    dz?.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+    dz?.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);});
+    doBtn?.addEventListener('click', async ()=>{
+      const newMs = parsed.map(r=>({
+        id:uid(), name:r.name,
+        startDate:r.startDate,
+        roleHistory:[{role:r.roleKey in STATE.roles?r.roleKey:'membro', date:r.startDate}],
+        conductHistory:[], extraHours:0, penaltyHours:0, isOverdelivery:false
+      }));
+      const updated=[...STATE.members, ...newMs];
+      STATE.members=updated; await saveMembers(updated); closeModal();
+    });
+  }
+
+  if(modal==='addRole') {
+    q('doAddRole')?.addEventListener('click', ()=>{
+      const key=q('roleKey').value.trim().replace(/\s+/g,'_').toLowerCase();
+      const label=q('roleName').value.trim();
+      const hrs=parseInt(q('roleHrs').value)||8;
+      if(!key||!label) return alert('Preencha todos os campos.');
+      STATE.roles={...STATE.roles,[key]:{label,hours:hrs}};
+      closeModal(); render();
+    });
+  }
+}
+
+// ── Listeners ────────────────────────────────────────────────────
+function attachListeners() {
+  const on = (id,ev,fn) => document.getElementById(id)?.addEventListener(ev,fn);
+
+  // nav
+  document.querySelectorAll('[data-view]').forEach(btn=>{
+    btn.addEventListener('click',()=>{ STATE.view=btn.dataset.view; render(); });
+  });
+  on('loginBtn','click',()=>{ STATE.modal='login'; renderModal(); });
+  on('logoutBtn','click',()=>auth.signOut());
+
+  // search & sort
+  on('searchInput','input',e=>{ STATE.search=e.target.value; render(); });
+  on('sortSelect','change',e=>{ STATE.sort=e.target.value; render(); });
+
+  // export
+  const doExport = () => exportCSV();
+  on('exportBtn','click',doExport);
+  on('exportBtn2','click',doExport);
+
+  // import
+  const doImport = () => { STATE.modal='importCSV'; renderModal(); };
+  on('importBtn','click',doImport);
+  on('importBtn2','click',doImport);
+
+  // add member (dashboard shortcut)
+  on('addMemberBtn','click',()=>{ STATE.view='admin'; render(); });
+
+  // admin panel
+  on('doAddMember','click', async ()=>{
+    const name=document.getElementById('newName')?.value.trim();
+    const role=document.getElementById('newRole')?.value||'membro';
+    const date=document.getElementById('newDate')?.value||today();
+    if(!name) return alert('Informe o nome.');
+    const m={id:uid(),name,startDate:date,roleHistory:[{role,date}],conductHistory:[],extraHours:0,penaltyHours:0,isOverdelivery:false};
+    const up=[...STATE.members,m]; STATE.members=up; await saveMembers(up); render();
+  });
+  on('doPromo','click', async ()=>{
+    const mid=document.getElementById('promoMember')?.value;
+    const role=document.getElementById('promoRole')?.value;
+    const date=document.getElementById('promoDate')?.value||today();
+    if(!mid) return alert('Selecione o membro.');
+    const up=STATE.members.map(m=>m.id===mid?{...m,roleHistory:[...(m.roleHistory||[]),{role,date}]}:m);
+    STATE.members=up; await saveMembers(up); render();
+  });
+  on('doAdj','click', async ()=>{
+    const mid=document.getElementById('adjMember')?.value;
+    const extra=parseInt(document.getElementById('adjExtra')?.value)||0;
+    const pen=parseInt(document.getElementById('adjPenalty')?.value)||0;
+    const od=document.getElementById('adjOD')?.value==='1';
+    const odDate=document.getElementById('adjODDate')?.value||'';
+    if(!mid) return alert('Selecione o membro.');
+    const up=STATE.members.map(m=>m.id===mid?{...m,extraHours:extra,penaltyHours:pen,isOverdelivery:od,overdeliveryDate:odDate}:m);
+    STATE.members=up; await saveMembers(up); render();
+  });
+  on('doCond','click', async ()=>{
+    const mid=document.getElementById('condMember')?.value;
+    const pts=parseInt(document.getElementById('condPts')?.value)||4;
+    const reason=document.getElementById('condReason')?.value.trim();
+    const date=document.getElementById('condDate')?.value||today();
+    if(!mid||!reason) return alert('Selecione membro e informe o motivo.');
+    const up=STATE.members.map(m=>m.id===mid?{...m,conductHistory:[...(m.conductHistory||[]),{id:uid(),points:pts,reason,date}]}:m);
+    STATE.members=up; await saveMembers(up); render();
+  });
+
+  // inline patches (table)
+  document.querySelectorAll('[data-patch]').forEach(input=>{
+    input.addEventListener('change', async e=>{
+      const mid=e.target.dataset.patch, field=e.target.dataset.field, val=parseInt(e.target.value)||0;
+      const up=STATE.members.map(m=>m.id===mid?{...m,[field]:val}:m);
+      STATE.members=up; await saveMembers(up);
+    });
+  });
+
+  // OD toggle (table)
+  document.querySelectorAll('[data-od]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const mid=btn.dataset.od;
+      const up=STATE.members.map(m=>m.id===mid?{...m,isOverdelivery:!m.isOverdelivery}:m);
+      STATE.members=up; await saveMembers(up); render();
+    });
+  });
+
+  // delete member
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const mid=btn.dataset.del, m=STATE.members.find(x=>x.id===mid);
+      if(!confirm(`Remover ${m?.name}?`)) return;
+      const up=STATE.members.filter(x=>x.id!==mid);
+      STATE.members=up; await saveMembers(up); render();
+    });
+  });
+
+  // delete conduct entry
+  document.querySelectorAll('[data-del-conduct]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const mid=btn.dataset.delConduct, cid=btn.dataset.conductId;
+      const up=STATE.members.map(m=>m.id===mid?{...m,conductHistory:(m.conductHistory||[]).filter(h=>h.id!==cid)}:m);
+      STATE.members=up; await saveMembers(up); render();
+    });
+  });
+
+  // conduct accordion
+  document.querySelectorAll('[data-cid]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const id=el.dataset.cid;
+      STATE.openConduct[id]=!STATE.openConduct[id]; render();
+    });
+  });
+
+  // conduct add btn
+  on('addConductBtn','click',()=>{ STATE.view='admin'; render(); });
+
+  // roles view
+  on('addRoleBtn','click',()=>{ STATE.modal='addRole'; renderModal(); });
+  on('saveRolesBtn','click', async ()=>{
+    // collect edited values
+    document.querySelectorAll('[data-role-key]').forEach(inp=>{
+      const k=inp.dataset.roleKey, f=inp.dataset.roleField;
+      if(!STATE.roles[k]) return;
+      if(f==='label') STATE.roles[k].label=inp.value;
+      if(f==='hours') STATE.roles[k].hours=parseInt(inp.value)||8;
+    });
+    await saveRoles(STATE.roles); alert('Configuração salva!'); render();
+  });
+  document.querySelectorAll('[data-del-role]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.dataset.delRole;
+      if(!confirm(`Remover cargo "${k}"?`)) return;
+      const r={...STATE.roles}; delete r[k]; STATE.roles=r; render();
+    });
+  });
+
+  // card click → detail
+  document.querySelectorAll('.member-card').forEach(card=>{
+    card.addEventListener('click',()=>{
+      const mid=card.dataset.id, m=STATE.members.find(x=>x.id===mid);
+      if(m) showDetail(m);
+    });
+  });
+}
+
+function showDetail(m) {
+  const layer=document.createElement('div'); layer.className='overlay'; layer.id='detailLayer';
+  const pts=activePts(m.conductHistory), acc=accumulated(m), rate=weeklyRate(m), cc=condColor(pts);
+  layer.innerHTML=`
+  <div class="modal modal-md" style="animation:fadeUp .25s ease">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="card-avatar" style="width:42px;height:42px;font-size:15px">${h(m.name)}</div>
+        <div>
+          <div class="modal-title">${m.name}</div>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent);margin-top:2px">${curRole(m)}</div>
+        </div>
+      </div>
+      <button class="modal-close" id="detailClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Horas acumuladas</div>
+          <div style="font-size:28px;font-weight:700;color:var(--green);font-family:'Syne',sans-serif">${acc}<span style="font-size:14px;color:var(--green2);margin-left:2px">h</span></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Ritmo semanal</div>
+          <div style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${rate}<span style="font-size:12px;color:var(--txt3);margin-left:2px">h/sem</span></div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Tempo de casa</div>
+          <div style="font-size:22px;font-weight:700;color:var(--txt);font-family:'Syne',sans-serif">${fmt(m.startDate)}</div>
+        </div>
+        ${STATE.isAdmin?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Conduta</div>
+          <div style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif" class="foot-val ${cc}">${pts}/20</div>
+        </div>`:''}
+      </div>
+      ${m.isOverdelivery?`<div style="background:var(--amber-bg);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--amber)">⚡ Overdelivery ativo ${m.overdeliveryDate?'· '+m.overdeliveryDate:''}</div>`:''}
+      <div>
+        <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Histórico de Cargos</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${(m.roleHistory||[]).map(r=>`<span class="role-tag">${STATE.roles[r.role]?.label||r.role} · ${r.date}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(layer);
+  layer.addEventListener('click',e=>{ if(e.target===layer) layer.remove(); });
+  document.getElementById('detailClose')?.addEventListener('click',()=>layer.remove());
+}
+
+// ── Export CSV ────────────────────────────────────────────────────
+function exportCSV() {
+  const rows=[['Nome','Cargo Atual','h/sem','Horas Acumuladas','Extra h/sem','Desconto h/sem','Overdelivery','Conduta','Tempo de Casa','Data Entrada']];
+  STATE.members.forEach(m=>{
+    rows.push([
+      m.name, curRole(m), weeklyRate(m), accumulated(m),
+      m.extraHours||0, m.penaltyHours||0,
+      m.isOverdelivery?'Sim':'Não',
+      activePts(m.conductHistory)+'/20',
+      fmt(m.startDate), m.startDate||''
+    ]);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;
+  a.download=`commit-membros-${today()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Firebase Init ────────────────────────────────────────────────
+(async ()=>{
+  // anonymous sign-in
+  try { await auth.signInAnonymously(); } catch {}
+
+  auth.onAuthStateChanged(async u=>{
+    STATE.user=u; STATE.isAdmin=u&&!u.isAnonymous;
+
+    DOC().onSnapshot(snap=>{
+      if(snap.exists) STATE.members=snap.data().members||[];
+      STATE.loading=false; render();
+    });
+
+    CFGDOC().onSnapshot(snap=>{
+      if(snap.exists && snap.data().roles) STATE.roles=snap.data().roles;
+      render();
+    });
+  });
+})();
+</script>
+</body>
+</html>
